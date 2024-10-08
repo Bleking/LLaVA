@@ -394,16 +394,22 @@ def preprocess_llama_2(
 
             target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
 
-            cur_len += round_len
+            cur_len += round_len  # cur_len += round_len
         target[cur_len:] = IGNORE_INDEX
+
+        # # Add debug prints here
+        # print(f"Round len: {round_len}, Instruction len: {instruction_len}")
+        # print(f"Target length so far: {cur_len}")
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
                 print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
+                    f"WARNING: tokenization mismatch 1: {cur_len} vs. {total_len}."
                     f" (ignored)"
                 )
+    
+    # print("---------------------")
 
     return dict(
         input_ids=input_ids,
@@ -480,14 +486,14 @@ def preprocess_v1(
 
             target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
 
-            cur_len += round_len
+            cur_len += round_len + 1  # cur_len += round_len
         target[cur_len:] = IGNORE_INDEX
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
                 print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
+                    f"WARNING: tokenization mismatch 2: {cur_len} vs. {total_len}."
                     f" (ignored)"
                 )
 
@@ -527,7 +533,7 @@ def preprocess_mpt(
         input_ids = tokenizer(
             conversations,
             return_tensors="pt",
-            padding="longest",
+            padding="longest",  #  padding="longest",
             max_length=tokenizer.model_max_length,
             truncation=True,
         ).input_ids
@@ -544,7 +550,8 @@ def preprocess_mpt(
         re_rounds = [conv.sep.join(rounds[:3])] # system + user + gpt
         for conv_idx in range(3, len(rounds), 2):
             re_rounds.append(conv.sep.join(rounds[conv_idx:conv_idx+2]))    # user + gpt
-        cur_len = 0
+        
+        cur_len = 1  # cur_len = 0  # for llava-v1.6-34b
         target[:cur_len] = IGNORE_INDEX
         for i, rou in enumerate(re_rounds):
             if rou == "":
@@ -555,12 +562,16 @@ def preprocess_mpt(
                 break
             parts[0] += sep
 
-            if has_image:
+            if has_image: 
                 round_len = len(tokenizer_image_token(rou, tokenizer))
                 instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 1
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 1
+            
+            # # Add debug prints here
+            # print(f"Round len: {round_len}, Instruction len: {instruction_len}")
+            # print(f"Target length so far: {cur_len}")
 
             if i != 0 and getattr(tokenizer, 'legacy', False) and IS_TOKENIZER_GREATER_THAN_0_14:
                 round_len += 1
@@ -568,16 +579,21 @@ def preprocess_mpt(
 
             target[cur_len : cur_len + instruction_len] = IGNORE_INDEX
 
-            cur_len += round_len
+            cur_len += round_len  # cur_len += round_len
+
+        # # Debug print for total lengths comparison
+        # print(f"Cur len: {cur_len}, Total len: {total_len}")
+        
         target[cur_len:] = IGNORE_INDEX
 
         if cur_len < tokenizer.model_max_length:
             if cur_len != total_len:
                 target[:] = IGNORE_INDEX
                 print(
-                    f"WARNING: tokenization mismatch: {cur_len} vs. {total_len}."
+                    f"WARNING: tokenization mismatch 3: {cur_len} vs. {total_len}."
                     f" (ignored)"
                 )
+    # print("---------------------")
 
     return dict(
         input_ids=input_ids,
